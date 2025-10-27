@@ -1,0 +1,3 @@
+google-cloud-storage==2.10.0
+google-cloud-bigquery==3.11.4
+apache-airflow[google]
