@@ -1,4 +1,4 @@
-logs/*
+logs/
 *.py[cod]
 *$py.class
 
