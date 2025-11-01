@@ -2,7 +2,7 @@ import os
 import logging
 from datetime import datetime
 
-:from airflow.providers.google.cloud.hooks.bigquery import BigQueryHook
+from airflow.providers.google.cloud.hooks.bigquery import BigQueryHook
 from airflow.operators.python import PythonOperator
 from airflow.models.dag import DAG
 from airflow.exceptions import AirflowException
@@ -132,10 +132,7 @@ def _create_company_and_user_atomic(**kwargs):
           VALUES (@user_name, GENERATE_UUID(), @email, @tel_number, @company_id);
     """
     print("merge_user_sql", merge_user_sql)
-<<<<<<<< HEAD:dags/corr_u_c.py
 
-========
->>>>>>>> origin/main:dags/add_new_owner.py
     user_name = conf.get("user_name", "ИП Новая Компания")
     email = conf.get("email", "ИП Новая Компания")
     tel_number = conf.get("tel_number", "ИП Новая Компания")
@@ -190,4 +187,4 @@ with DAG(
 ) as dag:
     create_company_and_user_task = PythonOperator(
         task_id="create_company_and_user_atomic_task",
-        python_callable=_create_company_and_user_atomi
+        python_callable=_create_company_and_user_atomi)
