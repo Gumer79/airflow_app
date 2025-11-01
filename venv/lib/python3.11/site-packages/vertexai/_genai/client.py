@@ -13,8 +13,10 @@
 # limitations under the License.
 #
 
+import asyncio
 import importlib
 from typing import Optional, Union, Any
+from types import TracebackType
 
 import google.auth
 from google.cloud.aiplatform import version as aip_version
@@ -48,14 +50,14 @@ _api_client.append_library_version_headers = _add_tracking_headers
 class AsyncClient:
     """Async Gen AI Client for the Vertex SDK."""
 
-    def __init__(self, api_client: genai_client.Client):
+    def __init__(self, api_client: genai_client.BaseApiClient):
         self._api_client = api_client
         self._live = live.AsyncLive(self._api_client)
         self._evals = None
         self._agent_engines = None
         self._prompt_optimizer = None
         self._prompts = None
-        self._multimodal = None
+        self._datasets = None
 
     @property
     @_common.experimental_warning(
@@ -121,16 +123,50 @@ class AsyncClient:
 
     @property
     @_common.experimental_warning(
-        "The Vertex SDK GenAI async multimodal module is experimental, "
+        "The Vertex SDK GenAI async datasets module is experimental, "
         "and may change in future versions."
     )
-    def multimodal(self):
-        if self._multimodal is None:
-            self._multimodal = importlib.import_module(
-                ".multimodal",
+    def datasets(self):
+        if self._datasets is None:
+            self._datasets = importlib.import_module(
+                ".datasets",
                 __package__,
             )
-        return self._multimodal.AsyncMultimodal(self._api_client)
+        return self._datasets.AsyncDatasets(self._api_client)
+
+    async def aclose(self) -> None:
+        """Closes the async client explicitly.
+
+        Example usage:
+
+        from vertexai import Client
+
+        async_client = vertexai.Client(
+            project='my-project-id', location='us-central1'
+        ).aio
+        prompt_1 = await async_client.prompts.create(...)
+        prompt_2 = await async_client.prompts.create(...)
+        # Close the client to release resources.
+        await async_client.aclose()
+        """
+        await self._api_client.aclose()
+
+    async def __aenter__(self) -> "AsyncClient":
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Exception],
+        exc_value: Optional[Exception],
+        traceback: Optional[TracebackType],
+    ) -> None:
+        await self.aclose()
+
+    def __del__(self) -> None:
+        try:
+            asyncio.get_running_loop().create_task(self.aclose())
+        except Exception:
+            pass
 
 
 class Client:
@@ -192,7 +228,7 @@ class Client:
         self._prompt_optimizer = None
         self._agent_engines = None
         self._prompts = None
-        self._multimodal = None
+        self._datasets = None
 
     @property
     def evals(self) -> Any:
@@ -282,13 +318,13 @@ class Client:
 
     @property
     @_common.experimental_warning(
-        "The Vertex SDK GenAI multimodal module is experimental, "
+        "The Vertex SDK GenAI datasets module is experimental, "
         "and may change in future versions."
     )
-    def multimodal(self):
-        if self._multimodal is None:
-            self._multimodal = importlib.import_module(
-                ".multimodal",
+    def datasets(self):
+        if self._datasets is None:
+            self._datasets = importlib.import_module(
+                ".datasets",
                 __package__,
             )
-        return self._multimodal.Multimodal(self._api_client)
+        return self._datasets.Datasets(self._api_client)

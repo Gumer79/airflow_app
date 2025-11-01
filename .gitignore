@@ -1,7 +1,11 @@
 logs/*
 
 # Byte-compiled / optimized / DLL files
+<<<<<<< HEAD
 pycache/
+=======
+__pycache__/
+>>>>>>> origin/main
 *.py[cod]
 *$py.class
 
@@ -100,3 +104,7 @@ Thumbs.db
 credentials.json
 
 # Logs
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/main

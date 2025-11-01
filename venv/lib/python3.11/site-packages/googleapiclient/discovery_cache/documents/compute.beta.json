@@ -36994,6 +36994,63 @@
 "https://www.googleapis.com/auth/compute.readonly"
 ]
 },
+"getIamPolicy": {
+"description": "Gets the access control policy for a resource. May be empty if no such\npolicy or resource exists.",
+"flatPath": "projects/{project}/zones/{zone}/reservations/{parentResource}/reservationBlocks/{resource}/getIamPolicy",
+"httpMethod": "GET",
+"id": "compute.reservationBlocks.getIamPolicy",
+"parameterOrder": [
+"project",
+"zone",
+"parentResource",
+"resource"
+],
+"parameters": {
+"optionsRequestedPolicyVersion": {
+"description": "Requested IAM Policy version.",
+"format": "int32",
+"location": "query",
+"type": "integer"
+},
+"parentResource": {
+"description": "Name or id of parent resource of the resource for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-zA-Z0-9/]{0,255}[a-zA-Z0-9])?",
+"required": true,
+"type": "string"
+},
+"project": {
+"description": "Project ID for this request.",
+"location": "path",
+"pattern": "(?:(?:[-a-z0-9]{1,63}\\.)*(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?):)?(?:[0-9]{1,19}|(?:[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?))",
+"required": true,
+"type": "string"
+},
+"resource": {
+"description": "Name or id of the resource for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?|[1-9][0-9]{0,19}",
+"required": true,
+"type": "string"
+},
+"zone": {
+"description": "The name of the zone for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?",
+"required": true,
+"type": "string"
+}
+},
+"path": "projects/{project}/zones/{zone}/reservations/{parentResource}/reservationBlocks/{resource}/getIamPolicy",
+"response": {
+"$ref": "Policy"
+},
+"scopes": [
+"https://www.googleapis.com/auth/cloud-platform",
+"https://www.googleapis.com/auth/compute",
+"https://www.googleapis.com/auth/compute.readonly"
+]
+},
 "list": {
 "description": "Retrieves a list of reservation blocks under a single reservation.",
 "flatPath": "projects/{project}/zones/{zone}/reservations/{reservation}/reservationBlocks",
@@ -37115,6 +37172,113 @@
 "https://www.googleapis.com/auth/cloud-platform",
 "https://www.googleapis.com/auth/compute"
 ]
+},
+"setIamPolicy": {
+"description": "Sets the access control policy on the specified resource.\nReplaces any existing policy.",
+"flatPath": "projects/{project}/zones/{zone}/reservations/{parentResource}/reservationBlocks/{resource}/setIamPolicy",
+"httpMethod": "POST",
+"id": "compute.reservationBlocks.setIamPolicy",
+"parameterOrder": [
+"project",
+"zone",
+"parentResource",
+"resource"
+],
+"parameters": {
+"parentResource": {
+"description": "Name or id of parent resource of the resource for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-zA-Z0-9/]{0,255}[a-zA-Z0-9])?",
+"required": true,
+"type": "string"
+},
+"project": {
+"description": "Project ID for this request.",
+"location": "path",
+"pattern": "(?:(?:[-a-z0-9]{1,63}\\.)*(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?):)?(?:[0-9]{1,19}|(?:[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?))",
+"required": true,
+"type": "string"
+},
+"resource": {
+"description": "Name or id of the resource for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?|[1-9][0-9]{0,19}",
+"required": true,
+"type": "string"
+},
+"zone": {
+"description": "The name of the zone for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?",
+"required": true,
+"type": "string"
+}
+},
+"path": "projects/{project}/zones/{zone}/reservations/{parentResource}/reservationBlocks/{resource}/setIamPolicy",
+"request": {
+"$ref": "ZoneSetNestedPolicyRequest"
+},
+"response": {
+"$ref": "Policy"
+},
+"scopes": [
+"https://www.googleapis.com/auth/cloud-platform",
+"https://www.googleapis.com/auth/compute"
+]
+},
+"testIamPermissions": {
+"description": "Returns permissions that a caller has on the specified resource.",
+"flatPath": "projects/{project}/zones/{zone}/reservations/{parentResource}/reservationBlocks/{resource}/testIamPermissions",
+"httpMethod": "POST",
+"id": "compute.reservationBlocks.testIamPermissions",
+"parameterOrder": [
+"project",
+"zone",
+"parentResource",
+"resource"
+],
+"parameters": {
+"parentResource": {
+"description": "Name or id of parent resource of the resource for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-zA-Z0-9/]{0,255}[a-zA-Z0-9])?",
+"required": true,
+"type": "string"
+},
+"project": {
+"description": "Project ID for this request.",
+"location": "path",
+"pattern": "(?:(?:[-a-z0-9]{1,63}\\.)*(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?):)?(?:[0-9]{1,19}|(?:[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?))",
+"required": true,
+"type": "string"
+},
+"resource": {
+"description": "Name or id of the resource for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?|[1-9][0-9]{0,19}",
+"required": true,
+"type": "string"
+},
+"zone": {
+"description": "The name of the zone for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?",
+"required": true,
+"type": "string"
+}
+},
+"path": "projects/{project}/zones/{zone}/reservations/{parentResource}/reservationBlocks/{resource}/testIamPermissions",
+"request": {
+"$ref": "TestPermissionsRequest"
+},
+"response": {
+"$ref": "TestPermissionsResponse"
+},
+"scopes": [
+"https://www.googleapis.com/auth/cloud-platform",
+"https://www.googleapis.com/auth/compute",
+"https://www.googleapis.com/auth/compute.readonly"
+]
 }
 }
 },
@@ -37160,6 +37324,63 @@
 "path": "projects/{project}/zones/{zone}/{parentName}/reservationSubBlocks/{reservationSubBlock}",
 "response": {
 "$ref": "ReservationSubBlocksGetResponse"
+},
+"scopes": [
+"https://www.googleapis.com/auth/cloud-platform",
+"https://www.googleapis.com/auth/compute",
+"https://www.googleapis.com/auth/compute.readonly"
+]
+},
+"getIamPolicy": {
+"description": "Gets the access control policy for a resource. May be empty if no such\npolicy or resource exists.",
+"flatPath": "projects/{project}/zones/{zone}/{parentResource}/reservationSubBlocks/{resource}/getIamPolicy",
+"httpMethod": "GET",
+"id": "compute.reservationSubBlocks.getIamPolicy",
+"parameterOrder": [
+"project",
+"zone",
+"parentResource",
+"resource"
+],
+"parameters": {
+"optionsRequestedPolicyVersion": {
+"description": "Requested IAM Policy version.",
+"format": "int32",
+"location": "query",
+"type": "integer"
+},
+"parentResource": {
+"description": "Name or id of parent resource of the resource for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-zA-Z0-9/]{0,255}[a-zA-Z0-9])?",
+"required": true,
+"type": "string"
+},
+"project": {
+"description": "Project ID for this request.",
+"location": "path",
+"pattern": "(?:(?:[-a-z0-9]{1,63}\\.)*(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?):)?(?:[0-9]{1,19}|(?:[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?))",
+"required": true,
+"type": "string"
+},
+"resource": {
+"description": "Name or id of the resource for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?|[1-9][0-9]{0,19}",
+"required": true,
+"type": "string"
+},
+"zone": {
+"description": "The name of the zone for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?",
+"required": true,
+"type": "string"
+}
+},
+"path": "projects/{project}/zones/{zone}/{parentResource}/reservationSubBlocks/{resource}/getIamPolicy",
+"response": {
+"$ref": "Policy"
 },
 "scopes": [
 "https://www.googleapis.com/auth/cloud-platform",
@@ -37338,6 +37559,113 @@
 "scopes": [
 "https://www.googleapis.com/auth/cloud-platform",
 "https://www.googleapis.com/auth/compute"
+]
+},
+"setIamPolicy": {
+"description": "Sets the access control policy on the specified resource.\nReplaces any existing policy.",
+"flatPath": "projects/{project}/zones/{zone}/{parentResource}/reservationSubBlocks/{resource}/setIamPolicy",
+"httpMethod": "POST",
+"id": "compute.reservationSubBlocks.setIamPolicy",
+"parameterOrder": [
+"project",
+"zone",
+"parentResource",
+"resource"
+],
+"parameters": {
+"parentResource": {
+"description": "Name or id of parent resource of the resource for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-zA-Z0-9/]{0,255}[a-zA-Z0-9])?",
+"required": true,
+"type": "string"
+},
+"project": {
+"description": "Project ID for this request.",
+"location": "path",
+"pattern": "(?:(?:[-a-z0-9]{1,63}\\.)*(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?):)?(?:[0-9]{1,19}|(?:[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?))",
+"required": true,
+"type": "string"
+},
+"resource": {
+"description": "Name or id of the resource for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?|[1-9][0-9]{0,19}",
+"required": true,
+"type": "string"
+},
+"zone": {
+"description": "The name of the zone for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?",
+"required": true,
+"type": "string"
+}
+},
+"path": "projects/{project}/zones/{zone}/{parentResource}/reservationSubBlocks/{resource}/setIamPolicy",
+"request": {
+"$ref": "ZoneSetNestedPolicyRequest"
+},
+"response": {
+"$ref": "Policy"
+},
+"scopes": [
+"https://www.googleapis.com/auth/cloud-platform",
+"https://www.googleapis.com/auth/compute"
+]
+},
+"testIamPermissions": {
+"description": "Returns permissions that a caller has on the specified resource.",
+"flatPath": "projects/{project}/zones/{zone}/{parentResource}/reservationSubBlocks/{resource}/testIamPermissions",
+"httpMethod": "POST",
+"id": "compute.reservationSubBlocks.testIamPermissions",
+"parameterOrder": [
+"project",
+"zone",
+"parentResource",
+"resource"
+],
+"parameters": {
+"parentResource": {
+"description": "Name or id of parent resource of the resource for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-zA-Z0-9/]{0,255}[a-zA-Z0-9])?",
+"required": true,
+"type": "string"
+},
+"project": {
+"description": "Project ID for this request.",
+"location": "path",
+"pattern": "(?:(?:[-a-z0-9]{1,63}\\.)*(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?):)?(?:[0-9]{1,19}|(?:[a-z0-9](?:[-a-z0-9]{0,61}[a-z0-9])?))",
+"required": true,
+"type": "string"
+},
+"resource": {
+"description": "Name or id of the resource for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?|[1-9][0-9]{0,19}",
+"required": true,
+"type": "string"
+},
+"zone": {
+"description": "The name of the zone for this request.",
+"location": "path",
+"pattern": "[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?",
+"required": true,
+"type": "string"
+}
+},
+"path": "projects/{project}/zones/{zone}/{parentResource}/reservationSubBlocks/{resource}/testIamPermissions",
+"request": {
+"$ref": "TestPermissionsRequest"
+},
+"response": {
+"$ref": "TestPermissionsResponse"
+},
+"scopes": [
+"https://www.googleapis.com/auth/cloud-platform",
+"https://www.googleapis.com/auth/compute",
+"https://www.googleapis.com/auth/compute.readonly"
 ]
 }
 }
@@ -48096,7 +48424,7 @@
 }
 }
 },
-"revision": "20250930",
+"revision": "20251015",
 "rootUrl": "https://compute.googleapis.com/",
 "schemas": {
 "AWSV4Signature": {
@@ -108538,6 +108866,28 @@ false
 },
 "description": "The labels to set for this resource.",
 "type": "object"
+}
+},
+"type": "object"
+},
+"ZoneSetNestedPolicyRequest": {
+"id": "ZoneSetNestedPolicyRequest",
+"properties": {
+"bindings": {
+"description": "Flatten Policy to create a backwacd compatible wire-format.\nDeprecated. Use 'policy' to specify bindings.",
+"items": {
+"$ref": "Binding"
+},
+"type": "array"
+},
+"etag": {
+"description": "Flatten Policy to create a backward compatible wire-format.\nDeprecated. Use 'policy' to specify the etag.",
+"format": "byte",
+"type": "string"
+},
+"policy": {
+"$ref": "Policy",
+"description": "REQUIRED: The complete policy to be applied to the 'resource'. The size of\nthe policy is limited to a few 10s of KB. An empty policy is in general a\nvalid policy but certain services (like Projects) might reject them."
 }
 },
 "type": "object"

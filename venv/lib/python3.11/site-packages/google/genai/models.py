@@ -59,11 +59,11 @@ def _Blob_to_mldev(
     parent_object: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
   to_object: dict[str, Any] = {}
-  if getv(from_object, ['display_name']) is not None:
-    raise ValueError('display_name parameter is not supported in Gemini API.')
-
   if getv(from_object, ['data']) is not None:
     setv(to_object, ['data'], getv(from_object, ['data']))
+
+  if getv(from_object, ['display_name']) is not None:
+    raise ValueError('display_name parameter is not supported in Gemini API.')
 
   if getv(from_object, ['mime_type']) is not None:
     setv(to_object, ['mimeType'], getv(from_object, ['mime_type']))
@@ -94,13 +94,6 @@ def _Candidate_from_mldev(
   if getv(from_object, ['finishReason']) is not None:
     setv(to_object, ['finish_reason'], getv(from_object, ['finishReason']))
 
-  if getv(from_object, ['urlContextMetadata']) is not None:
-    setv(
-        to_object,
-        ['url_context_metadata'],
-        getv(from_object, ['urlContextMetadata']),
-    )
-
   if getv(from_object, ['avgLogprobs']) is not None:
     setv(to_object, ['avg_logprobs'], getv(from_object, ['avgLogprobs']))
 
@@ -122,6 +115,13 @@ def _Candidate_from_mldev(
         to_object,
         ['safety_ratings'],
         [item for item in getv(from_object, ['safetyRatings'])],
+    )
+
+  if getv(from_object, ['urlContextMetadata']) is not None:
+    setv(
+        to_object,
+        ['url_context_metadata'],
+        getv(from_object, ['urlContextMetadata']),
     )
 
   return to_object
@@ -2457,14 +2457,14 @@ def _GoogleSearch_to_mldev(
     parent_object: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
   to_object: dict[str, Any] = {}
-  if getv(from_object, ['time_range_filter']) is not None:
-    setv(
-        to_object, ['timeRangeFilter'], getv(from_object, ['time_range_filter'])
-    )
-
   if getv(from_object, ['exclude_domains']) is not None:
     raise ValueError(
         'exclude_domains parameter is not supported in Gemini API.'
+    )
+
+  if getv(from_object, ['time_range_filter']) is not None:
+    setv(
+        to_object, ['timeRangeFilter'], getv(from_object, ['time_range_filter'])
     )
 
   return to_object
@@ -2816,33 +2816,6 @@ def _Part_to_mldev(
     parent_object: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
   to_object: dict[str, Any] = {}
-  if getv(from_object, ['video_metadata']) is not None:
-    setv(to_object, ['videoMetadata'], getv(from_object, ['video_metadata']))
-
-  if getv(from_object, ['thought']) is not None:
-    setv(to_object, ['thought'], getv(from_object, ['thought']))
-
-  if getv(from_object, ['inline_data']) is not None:
-    setv(
-        to_object,
-        ['inlineData'],
-        _Blob_to_mldev(getv(from_object, ['inline_data']), to_object),
-    )
-
-  if getv(from_object, ['file_data']) is not None:
-    setv(
-        to_object,
-        ['fileData'],
-        _FileData_to_mldev(getv(from_object, ['file_data']), to_object),
-    )
-
-  if getv(from_object, ['thought_signature']) is not None:
-    setv(
-        to_object,
-        ['thoughtSignature'],
-        getv(from_object, ['thought_signature']),
-    )
-
   if getv(from_object, ['function_call']) is not None:
     setv(to_object, ['functionCall'], getv(from_object, ['function_call']))
 
@@ -2856,6 +2829,13 @@ def _Part_to_mldev(
   if getv(from_object, ['executable_code']) is not None:
     setv(to_object, ['executableCode'], getv(from_object, ['executable_code']))
 
+  if getv(from_object, ['file_data']) is not None:
+    setv(
+        to_object,
+        ['fileData'],
+        _FileData_to_mldev(getv(from_object, ['file_data']), to_object),
+    )
+
   if getv(from_object, ['function_response']) is not None:
     setv(
         to_object,
@@ -2863,8 +2843,28 @@ def _Part_to_mldev(
         getv(from_object, ['function_response']),
     )
 
+  if getv(from_object, ['inline_data']) is not None:
+    setv(
+        to_object,
+        ['inlineData'],
+        _Blob_to_mldev(getv(from_object, ['inline_data']), to_object),
+    )
+
   if getv(from_object, ['text']) is not None:
     setv(to_object, ['text'], getv(from_object, ['text']))
+
+  if getv(from_object, ['thought']) is not None:
+    setv(to_object, ['thought'], getv(from_object, ['thought']))
+
+  if getv(from_object, ['thought_signature']) is not None:
+    setv(
+        to_object,
+        ['thoughtSignature'],
+        getv(from_object, ['thought_signature']),
+    )
+
+  if getv(from_object, ['video_metadata']) is not None:
+    setv(to_object, ['videoMetadata'], getv(from_object, ['video_metadata']))
 
   return to_object
 
@@ -3136,11 +3136,11 @@ def _SafetySetting_to_mldev(
     parent_object: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
   to_object: dict[str, Any] = {}
-  if getv(from_object, ['method']) is not None:
-    raise ValueError('method parameter is not supported in Gemini API.')
-
   if getv(from_object, ['category']) is not None:
     setv(to_object, ['category'], getv(from_object, ['category']))
+
+  if getv(from_object, ['method']) is not None:
+    raise ValueError('method parameter is not supported in Gemini API.')
 
   if getv(from_object, ['threshold']) is not None:
     setv(to_object, ['threshold'], getv(from_object, ['threshold']))
@@ -3280,6 +3280,9 @@ def _SpeechConfig_to_vertex(
     parent_object: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
   to_object: dict[str, Any] = {}
+  if getv(from_object, ['language_code']) is not None:
+    setv(to_object, ['languageCode'], getv(from_object, ['language_code']))
+
   if getv(from_object, ['voice_config']) is not None:
     setv(to_object, ['voiceConfig'], getv(from_object, ['voice_config']))
 
@@ -3287,9 +3290,6 @@ def _SpeechConfig_to_vertex(
     raise ValueError(
         'multi_speaker_voice_config parameter is not supported in Vertex AI.'
     )
-
-  if getv(from_object, ['language_code']) is not None:
-    setv(to_object, ['languageCode'], getv(from_object, ['language_code']))
 
   return to_object
 
@@ -3309,23 +3309,11 @@ def _Tool_to_mldev(
   if getv(from_object, ['retrieval']) is not None:
     raise ValueError('retrieval parameter is not supported in Gemini API.')
 
-  if getv(from_object, ['google_search']) is not None:
-    setv(
-        to_object,
-        ['googleSearch'],
-        _GoogleSearch_to_mldev(getv(from_object, ['google_search']), to_object),
-    )
-
   if getv(from_object, ['google_search_retrieval']) is not None:
     setv(
         to_object,
         ['googleSearchRetrieval'],
         getv(from_object, ['google_search_retrieval']),
-    )
-
-  if getv(from_object, ['enterprise_web_search']) is not None:
-    raise ValueError(
-        'enterprise_web_search parameter is not supported in Gemini API.'
     )
 
   if getv(from_object, ['google_maps']) is not None:
@@ -3335,14 +3323,26 @@ def _Tool_to_mldev(
         _GoogleMaps_to_mldev(getv(from_object, ['google_maps']), to_object),
     )
 
-  if getv(from_object, ['url_context']) is not None:
-    setv(to_object, ['urlContext'], getv(from_object, ['url_context']))
-
   if getv(from_object, ['computer_use']) is not None:
     setv(to_object, ['computerUse'], getv(from_object, ['computer_use']))
 
   if getv(from_object, ['code_execution']) is not None:
     setv(to_object, ['codeExecution'], getv(from_object, ['code_execution']))
+
+  if getv(from_object, ['enterprise_web_search']) is not None:
+    raise ValueError(
+        'enterprise_web_search parameter is not supported in Gemini API.'
+    )
+
+  if getv(from_object, ['google_search']) is not None:
+    setv(
+        to_object,
+        ['googleSearch'],
+        _GoogleSearch_to_mldev(getv(from_object, ['google_search']), to_object),
+    )
+
+  if getv(from_object, ['url_context']) is not None:
+    setv(to_object, ['urlContext'], getv(from_object, ['url_context']))
 
   return to_object
 
@@ -3365,15 +3365,21 @@ def _Tool_to_vertex(
   if getv(from_object, ['retrieval']) is not None:
     setv(to_object, ['retrieval'], getv(from_object, ['retrieval']))
 
-  if getv(from_object, ['google_search']) is not None:
-    setv(to_object, ['googleSearch'], getv(from_object, ['google_search']))
-
   if getv(from_object, ['google_search_retrieval']) is not None:
     setv(
         to_object,
         ['googleSearchRetrieval'],
         getv(from_object, ['google_search_retrieval']),
     )
+
+  if getv(from_object, ['google_maps']) is not None:
+    setv(to_object, ['googleMaps'], getv(from_object, ['google_maps']))
+
+  if getv(from_object, ['computer_use']) is not None:
+    setv(to_object, ['computerUse'], getv(from_object, ['computer_use']))
+
+  if getv(from_object, ['code_execution']) is not None:
+    setv(to_object, ['codeExecution'], getv(from_object, ['code_execution']))
 
   if getv(from_object, ['enterprise_web_search']) is not None:
     setv(
@@ -3382,17 +3388,11 @@ def _Tool_to_vertex(
         getv(from_object, ['enterprise_web_search']),
     )
 
-  if getv(from_object, ['google_maps']) is not None:
-    setv(to_object, ['googleMaps'], getv(from_object, ['google_maps']))
+  if getv(from_object, ['google_search']) is not None:
+    setv(to_object, ['googleSearch'], getv(from_object, ['google_search']))
 
   if getv(from_object, ['url_context']) is not None:
     setv(to_object, ['urlContext'], getv(from_object, ['url_context']))
-
-  if getv(from_object, ['computer_use']) is not None:
-    setv(to_object, ['computerUse'], getv(from_object, ['computer_use']))
-
-  if getv(from_object, ['code_execution']) is not None:
-    setv(to_object, ['codeExecution'], getv(from_object, ['code_execution']))
 
   return to_object
 
@@ -3514,6 +3514,20 @@ def _UpscaleImageAPIConfig_to_vertex(
         parent_object,
         ['parameters', 'storageUri'],
         getv(from_object, ['output_gcs_uri']),
+    )
+
+  if getv(from_object, ['safety_filter_level']) is not None:
+    setv(
+        parent_object,
+        ['parameters', 'safetySetting'],
+        getv(from_object, ['safety_filter_level']),
+    )
+
+  if getv(from_object, ['person_generation']) is not None:
+    setv(
+        parent_object,
+        ['parameters', 'personGeneration'],
+        getv(from_object, ['person_generation']),
     )
 
   if getv(from_object, ['include_rai_reason']) is not None:
@@ -5376,6 +5390,8 @@ class Models(_api_module.BaseModule):
     api_config = types._UpscaleImageAPIConfigDict(
         http_options=config_dct.get('http_options', None),
         output_gcs_uri=config_dct.get('output_gcs_uri', None),
+        safety_filter_level=config_dct.get('safety_filter_level', None),
+        person_generation=config_dct.get('person_generation', None),
         include_rai_reason=config_dct.get('include_rai_reason', None),
         output_mime_type=config_dct.get('output_mime_type', None),
         output_compression_quality=config_dct.get(
@@ -7200,6 +7216,8 @@ class AsyncModels(_api_module.BaseModule):
     api_config = types._UpscaleImageAPIConfigDict(
         http_options=config_dct.get('http_options', None),
         output_gcs_uri=config_dct.get('output_gcs_uri', None),
+        safety_filter_level=config_dct.get('safety_filter_level', None),
+        person_generation=config_dct.get('person_generation', None),
         include_rai_reason=config_dct.get('include_rai_reason', None),
         output_mime_type=config_dct.get('output_mime_type', None),
         output_compression_quality=config_dct.get(

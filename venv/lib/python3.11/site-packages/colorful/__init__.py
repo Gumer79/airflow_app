@@ -1,13 +1,11 @@
-# -*- coding: utf-8 -*-
-
 """
-    colorful
-    ~~~~~~~~
+colorful
+~~~~~~~~
 
-    Terminal string styling done right, in Python.
+Terminal string styling done right, in Python.
 
-    :copyright: (c) 2017 by Timo Furrer <tuxtimo@gmail.com>
-    :license: MIT, see LICENSE for more details.
+:copyright: (c) 2017 by Timo Furrer <tuxtimo@gmail.com>
+:license: MIT, see LICENSE for more details.
 """
 
 import os
@@ -21,7 +19,7 @@ from .core import Colorful
 from . import terminal
 
 #: Holds the current version
-__version__ = '0.5.7'
+__version__ = '0.5.8'
 
 # if we are on Windows we have to init colorama
 if platform.system() == 'Windows':
@@ -34,7 +32,7 @@ class ColorfulModule(types.ModuleType):
     this module.
     """
     def __init__(self, colorful, *args):
-        super(ColorfulModule, self).__init__(*args)
+        super().__init__(*args)
         self.colorful = colorful
 
     @contextmanager

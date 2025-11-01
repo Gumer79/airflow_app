@@ -24,6 +24,11 @@ from typing import (
     Union,
 )
 
+import asyncio
+import queue
+import threading
+import warnings
+
 if TYPE_CHECKING:
     try:
         from google.adk.events.event import Event
@@ -31,6 +36,13 @@ if TYPE_CHECKING:
         Event = Event
     except (ImportError, AttributeError):
         Event = Any
+
+    try:
+        from google.adk.apps import App
+
+        App = App
+    except (ImportError, AttributeError):
+        App = Any
 
     try:
         from google.adk.agents import BaseAgent
@@ -166,10 +178,14 @@ class _StreamRunRequest:
         )
         # The authorizations of the user, keyed by authorization ID.
 
-        self.user_id: Optional[str] = kwargs.get("user_id", _DEFAULT_USER_ID)
+        self.user_id: Optional[str] = kwargs.get("user_id") or kwargs.get(
+            "userId", _DEFAULT_USER_ID
+        )
         # The user ID.
 
-        self.session_id: Optional[str] = kwargs.get("session_id")
+        self.session_id: Optional[str] = kwargs.get("session_id") or kwargs.get(
+            "sessionId"
+        )
         # The session ID.
 
 
@@ -273,18 +289,25 @@ def _default_instrumentor_builder(
             "opentelemetry-sdk", needed_for_tracing=True, needed_for_logging=True
         )
 
+    import uuid
+
+    # Provide a set of resource attributes but allow to override them with env
+    # variables like OTEL_RESOURCE_ATTRIBUTES and OTEL_SERVICE_NAME.
     cloud_resource_id = _detect_cloud_resource_id(project_id)
     resource = opentelemetry.sdk.resources.Resource.create(
         attributes={
             "gcp.project_id": project_id,
+            "cloud.account.id": project_id,
             "service.name": os.getenv("GOOGLE_CLOUD_AGENT_ENGINE_ID", ""),
+            "service.instance.id": f"{uuid.uuid4().hex}-{os.getpid()}",
+            "cloud.region": os.getenv("GOOGLE_CLOUD_LOCATION", ""),
         }
         | (
             {"cloud.resource_id": cloud_resource_id}
             if cloud_resource_id is not None
             else {}
         )
-    )
+    ).merge(opentelemetry.sdk.resources.OTELResourceDetector().detect())
 
     if enable_tracing:
         try:
@@ -433,7 +456,8 @@ class AdkApp:
     def __init__(
         self,
         *,
-        agent: "BaseAgent",
+        app: "App" = None,
+        agent: "BaseAgent" = None,
         app_name: Optional[str] = None,
         plugins: Optional[List["BasePlugin"]] = None,
         enable_tracing: Optional[bool] = None,
@@ -489,10 +513,26 @@ class AdkApp:
             )
             raise ValueError(msg)
 
+        if not agent and not app:
+            raise ValueError("One of `agent` or `app` must be provided.")
+        if app:
+            if app_name:
+                raise ValueError(
+                    "When app is provided, app_name should not be provided."
+                )
+            if agent:
+                raise ValueError("When app is provided, agent should not be provided.")
+            if plugins:
+                raise ValueError(
+                    "When app is provided, plugins should not be provided and"
+                    " should be provided in the app instead."
+                )
+
         self._tmpl_attrs: Dict[str, Any] = {
             "project": initializer.global_config.project,
             "location": initializer.global_config.location,
             "agent": agent,
+            "app": app,
             "app_name": app_name,
             "plugins": plugins,
             "enable_tracing": enable_tracing,
@@ -608,10 +648,23 @@ class AdkApp:
         import copy
 
         return self.__class__(
-            agent=copy.deepcopy(self._tmpl_attrs.get("agent")),
+            app=copy.deepcopy(self._tmpl_attrs.get("app")),
             enable_tracing=self._tmpl_attrs.get("enable_tracing"),
-            app_name=self._tmpl_attrs.get("app_name"),
-            plugins=self._tmpl_attrs.get("plugins"),
+            agent=(
+                None
+                if self._tmpl_attrs.get("app")
+                else copy.deepcopy(self._tmpl_attrs.get("agent"))
+            ),
+            app_name=(
+                None
+                if self._tmpl_attrs.get("app")
+                else self._tmpl_attrs.get("app_name")
+            ),
+            plugins=(
+                None
+                if self._tmpl_attrs.get("app")
+                else copy.deepcopy(self._tmpl_attrs.get("plugins"))
+            ),
             session_service_builder=self._tmpl_attrs.get("session_service_builder"),
             artifact_service_builder=self._tmpl_attrs.get("artifact_service_builder"),
             memory_service_builder=self._tmpl_attrs.get("memory_service_builder"),
@@ -634,14 +687,10 @@ class AdkApp:
         location = self._tmpl_attrs.get("location")
         os.environ["GOOGLE_CLOUD_LOCATION"] = location
 
-        content_enabled = os.getenv(
-            "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", "false"
-        ).lower() in ("true", "1")
-        # Disable content capture in custom ADK spans unless:
-        # 1. User opted-in for content capture.
-        # 2. Or user enabled tracing explicitly with the old flag (this is to
-        #    preserve compatibility with old behavior).
-        if self._tmpl_attrs.get("enable_tracing") or content_enabled:
+        # Disable content capture in custom ADK spans unless user enabled
+        # tracing explicitly with the old flag
+        # (this is to preserve compatibility with old behavior).
+        if self._tmpl_attrs.get("enable_tracing"):
             os.environ["ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS"] = "true"
         else:
             os.environ["ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS"] = "false"
@@ -762,20 +811,38 @@ class AdkApp:
             self._tmpl_attrs["memory_service"] = InMemoryMemoryService()
 
         self._tmpl_attrs["runner"] = Runner(
-            agent=self._tmpl_attrs.get("agent"),
-            plugins=self._tmpl_attrs.get("plugins"),
+            app=self._tmpl_attrs.get("app"),
+            agent=(
+                None if self._tmpl_attrs.get("app") else self._tmpl_attrs.get("agent")
+            ),
+            app_name=(
+                None
+                if self._tmpl_attrs.get("app")
+                else self._tmpl_attrs.get("app_name")
+            ),
+            plugins=(
+                None if self._tmpl_attrs.get("app") else self._tmpl_attrs.get("plugins")
+            ),
             session_service=self._tmpl_attrs.get("session_service"),
             artifact_service=self._tmpl_attrs.get("artifact_service"),
             memory_service=self._tmpl_attrs.get("memory_service"),
-            app_name=self._tmpl_attrs.get("app_name"),
         )
         self._tmpl_attrs["in_memory_session_service"] = InMemorySessionService()
         self._tmpl_attrs["in_memory_artifact_service"] = InMemoryArtifactService()
         self._tmpl_attrs["in_memory_memory_service"] = InMemoryMemoryService()
         self._tmpl_attrs["in_memory_runner"] = Runner(
-            app_name=self._tmpl_attrs.get("app_name"),
-            agent=self._tmpl_attrs.get("agent"),
-            plugins=self._tmpl_attrs.get("plugins"),
+            app=self._tmpl_attrs.get("app"),
+            app_name=(
+                None
+                if self._tmpl_attrs.get("app")
+                else self._tmpl_attrs.get("app_name")
+            ),
+            agent=(
+                None if self._tmpl_attrs.get("app") else self._tmpl_attrs.get("agent")
+            ),
+            plugins=(
+                None if self._tmpl_attrs.get("app") else self._tmpl_attrs.get("plugins")
+            ),
             session_service=self._tmpl_attrs.get("in_memory_session_service"),
             artifact_service=self._tmpl_attrs.get("in_memory_artifact_service"),
             memory_service=self._tmpl_attrs.get("in_memory_memory_service"),
@@ -851,6 +918,85 @@ class AdkApp:
             # Yield the event data as a dictionary
             yield _utils.dump_event_for_json(event)
 
+    def stream_query(
+        self,
+        *,
+        message: Union[str, Dict[str, Any]],
+        user_id: str,
+        session_id: Optional[str] = None,
+        run_config: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ):
+        """Deprecated. Use async_stream_query instead.
+
+        Streams responses from the ADK application in response to a message.
+
+        Args:
+            message (Union[str, Dict[str, Any]]):
+                Required. The message to stream responses for.
+            user_id (str):
+                Required. The ID of the user.
+            session_id (str):
+                Optional. The ID of the session. If not provided, a new
+                session will be created for the user.
+            run_config (Optional[Dict[str, Any]]):
+                Optional. The run config to use for the query. If you want to
+                pass in a `run_config` pydantic object, you can pass in a dict
+                representing it as `run_config.model_dump(mode="json")`.
+            **kwargs (dict[str, Any]):
+                Optional. Additional keyword arguments to pass to the
+                runner.
+
+        Yields:
+            The output of querying the ADK application.
+        """
+        warnings.warn(
+            (
+                "AdkApp.stream_query(...) is deprecated. "
+                "Use AdkApp.async_stream_query(...) instead. See "
+                "https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/use/adk#stream-responses "
+                "for more details."
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        from vertexai.agent_engines import _utils
+        from google.genai import types
+
+        if isinstance(message, Dict):
+            content = types.Content.model_validate(message)
+        elif isinstance(message, str):
+            content = types.Content(role="user", parts=[types.Part(text=message)])
+        else:
+            raise TypeError(
+                "message must be a string or a dictionary representing"
+                " a Content object."
+            )
+
+        if not self._tmpl_attrs.get("runner"):
+            self.set_up()
+        if not session_id:
+            session = self.create_session(user_id=user_id)
+            session_id = session.id
+        run_config = _validate_run_config(run_config)
+        if run_config:
+            for event in self._tmpl_attrs.get("runner").run(
+                user_id=user_id,
+                session_id=session_id,
+                new_message=content,
+                run_config=run_config,
+                **kwargs,
+            ):
+                yield _utils.dump_event_for_json(event)
+        else:
+            for event in self._tmpl_attrs.get("runner").run(
+                user_id=user_id,
+                session_id=session_id,
+                new_message=content,
+                **kwargs,
+            ):
+                yield _utils.dump_event_for_json(event)
+
     async def streaming_agent_run_with_events(self, request_json: str):
         """Streams responses asynchronously from the ADK application.
 
@@ -877,12 +1023,13 @@ class AdkApp:
             self.set_up()
         session_service = self._tmpl_attrs.get("in_memory_session_service")
         artifact_service = self._tmpl_attrs.get("in_memory_artifact_service")
+        app = self._tmpl_attrs.get("app")
         # Try to get the session, if it doesn't exist, create a new one.
         session = None
         if request.session_id:
             try:
                 session = await session_service.get_session(
-                    app_name=self._tmpl_attrs.get("app_name"),
+                    app_name=app.name if app else self._tmpl_attrs.get("app_name"),
                     user_id=request.user_id,
                     session_id=request.session_id,
                 )
@@ -915,8 +1062,9 @@ class AdkApp:
                 yield converted_event
         finally:
             if session and not request.session_id:
+                app = self._tmpl_attrs.get("app")
                 await session_service.delete_session(
-                    app_name=self._tmpl_attrs.get("app_name"),
+                    app_name=app.name if app else self._tmpl_attrs.get("app_name"),
                     user_id=request.user_id,
                     session_id=session.id,
                 )
@@ -948,8 +1096,9 @@ class AdkApp:
         """
         if not self._tmpl_attrs.get("session_service"):
             self.set_up()
+        app = self._tmpl_attrs.get("app")
         session = await self._tmpl_attrs.get("session_service").get_session(
-            app_name=self._tmpl_attrs.get("app_name"),
+            app_name=app.name if app else self._tmpl_attrs.get("app_name"),
             user_id=user_id,
             session_id=session_id,
             **kwargs,
@@ -959,6 +1108,56 @@ class AdkApp:
                 "Session not found. Please create it using .create_session()"
             )
         return session
+
+    def get_session(
+        self,
+        *,
+        user_id: str,
+        session_id: str,
+        **kwargs,
+    ):
+        """Deprecated. Use async_get_session instead.
+
+        Get a session for the given user.
+        """
+        warnings.warn(
+            (
+                "AdkApp.get_session(...) is deprecated. "
+                "Use AdkApp.async_get_session(...) instead. See "
+                "https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/use/adk#get-session "
+                "for more details."
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        event_queue = queue.Queue(maxsize=1)
+
+        async def _invoke_async_get_session():
+            return await self.async_get_session(
+                user_id=user_id, session_id=session_id, **kwargs
+            )
+
+        def _asyncio_thread_main():
+            try:
+                result = asyncio.run(_invoke_async_get_session())
+                event_queue.put(result)
+            except Exception as e:
+                event_queue.put(e)
+
+        thread = threading.Thread(target=_asyncio_thread_main)
+        thread.start()
+
+        # Wait for the thread to finish
+        thread.join()
+        try:
+            outcome = event_queue.get(timeout=10)
+        except queue.Empty:
+            raise RuntimeError(
+                "Session not found. Please create it using .create_session()"
+            ) from None
+        if isinstance(outcome, RuntimeError):
+            raise outcome from None
+        return outcome
 
     async def async_list_sessions(self, *, user_id: str, **kwargs):
         """List sessions for the given user.
@@ -975,11 +1174,51 @@ class AdkApp:
         """
         if not self._tmpl_attrs.get("session_service"):
             self.set_up()
+        app = self._tmpl_attrs.get("app")
         return await self._tmpl_attrs.get("session_service").list_sessions(
-            app_name=self._tmpl_attrs.get("app_name"),
+            app_name=app.name if app else self._tmpl_attrs.get("app_name"),
             user_id=user_id,
             **kwargs,
         )
+
+    def list_sessions(self, *, user_id: str, **kwargs):
+        """Deprecated. Use async_list_sessions instead.
+
+        List sessions for the given user.
+        """
+        warnings.warn(
+            (
+                "AdkApp.list_sessions(...) is deprecated. "
+                "Use AdkApp.async_list_sessions(...) instead. See "
+                "https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/use/adk#list-sessions "
+                "for more details."
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        event_queue = queue.Queue()
+
+        async def _invoke_async_list_sessions():
+            try:
+                response = await self.async_list_sessions(user_id=user_id, **kwargs)
+                event_queue.put(response)
+            except RuntimeError as e:
+                event_queue.put(e)
+
+        def _asyncio_thread_main():
+            try:
+                asyncio.run(_invoke_async_list_sessions())
+            finally:
+                event_queue.put(None)
+
+        thread = threading.Thread(target=_asyncio_thread_main)
+        thread.start()
+        # Wait for the thread to finish
+        thread.join()
+        try:
+            return event_queue.get(timeout=10)
+        except queue.Empty:
+            raise RuntimeError("Failed to list sessions.") from None
 
     async def async_create_session(
         self,
@@ -1008,14 +1247,67 @@ class AdkApp:
         """
         if not self._tmpl_attrs.get("session_service"):
             self.set_up()
+        app = self._tmpl_attrs.get("app")
         session = await self._tmpl_attrs.get("session_service").create_session(
-            app_name=self._tmpl_attrs.get("app_name"),
+            app_name=app.name if app else self._tmpl_attrs.get("app_name"),
             user_id=user_id,
             session_id=session_id,
             state=state,
             **kwargs,
         )
         return session
+
+    def create_session(
+        self,
+        *,
+        user_id: str,
+        session_id: Optional[str] = None,
+        state: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ):
+        """Deprecated. Use async_create_session instead.
+
+        Creates a new session.
+        """
+        warnings.warn(
+            (
+                "AdkApp.create_session(...) is deprecated. "
+                "Use AdkApp.async_create_session(...) instead. See "
+                "https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/use/adk#create-session "
+                "for more details."
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        event_queue = queue.Queue(maxsize=1)
+
+        async def _invoke_async_create_session():
+            return await self.async_create_session(
+                user_id=user_id,
+                session_id=session_id,
+                state=state,
+                **kwargs,
+            )
+
+        def _asyncio_thread_main():
+            try:
+                result = asyncio.run(_invoke_async_create_session())
+                event_queue.put(result)
+            except RuntimeError as e:
+                event_queue.put(e)
+
+        thread = threading.Thread(target=_asyncio_thread_main)
+        thread.start()
+        # Wait for the thread to finish
+        thread.join()
+
+        try:
+            outcome = event_queue.get(timeout=10)
+        except queue.Empty:
+            raise RuntimeError("Failed to create session.") from None
+        if isinstance(outcome, RuntimeError):
+            raise outcome from None
+        return outcome
 
     async def async_delete_session(
         self,
@@ -1037,12 +1329,57 @@ class AdkApp:
         """
         if not self._tmpl_attrs.get("session_service"):
             self.set_up()
+        app = self._tmpl_attrs.get("app")
         await self._tmpl_attrs.get("session_service").delete_session(
-            app_name=self._tmpl_attrs.get("app_name"),
+            app_name=app.name if app else self._tmpl_attrs.get("app_name"),
             user_id=user_id,
             session_id=session_id,
             **kwargs,
         )
+
+    def delete_session(
+        self,
+        *,
+        user_id: str,
+        session_id: str,
+        **kwargs,
+    ):
+        """Deprecated. Use async_delete_session instead.
+
+        Deletes a session for the given user.
+        """
+        warnings.warn(
+            (
+                "AdkApp.delete_session(...) is deprecated. "
+                "Use AdkApp.async_delete_session(...) instead. See "
+                "https://cloud.google.com/vertex-ai/generative-ai/docs/agent-engine/use/adk#delete-session "
+                "for more details."
+            ),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        event_queue = queue.Queue(maxsize=1)
+
+        async def _invoke_async_delete_session():
+            await self.async_delete_session(
+                user_id=user_id, session_id=session_id, **kwargs
+            )
+
+        def _asyncio_thread_main():
+            try:
+                asyncio.run(_invoke_async_delete_session())
+                event_queue.put(None)
+            except RuntimeError as e:
+                event_queue.put(e)
+
+        thread = threading.Thread(target=_asyncio_thread_main)
+        thread.start()
+        # Wait for the thread to finish
+        thread.join()
+
+        outcome = event_queue.get(timeout=10)
+        if isinstance(outcome, RuntimeError):
+            raise outcome from None
 
     async def async_add_session_to_memory(self, *, session: Dict[str, Any]):
         """Generates memories.
@@ -1083,8 +1420,9 @@ class AdkApp:
         """
         if not self._tmpl_attrs.get("memory_service"):
             self.set_up()
+        app = self._tmpl_attrs.get("app")
         return await self._tmpl_attrs.get("memory_service").search_memory(
-            app_name=self._tmpl_attrs.get("app_name"),
+            app_name=app.name if app else self._tmpl_attrs.get("app_name"),
             user_id=user_id,
             query=query,
         )
@@ -1092,6 +1430,12 @@ class AdkApp:
     def register_operations(self) -> Dict[str, List[str]]:
         """Registers the operations of the ADK application."""
         return {
+            "": [
+                "get_session",
+                "list_sessions",
+                "create_session",
+                "delete_session",
+            ],
             "async": [
                 "async_get_session",
                 "async_list_sessions",
@@ -1100,6 +1444,7 @@ class AdkApp:
                 "async_add_session_to_memory",
                 "async_search_memory",
             ],
+            "stream": ["stream_query"],
             "async_stream": [
                 "async_stream_query",
                 "streaming_agent_run_with_events",
