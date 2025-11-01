@@ -72,6 +72,11 @@ def _AgentEngineMemoryConfig_to_vertex(
             getv(from_object, ["disable_memory_revisions"]),
         )
 
+    if getv(from_object, ["topics"]) is not None:
+        setv(
+            parent_object, ["topics"], [item for item in getv(from_object, ["topics"])]
+        )
+
     return to_object
 
 
@@ -282,6 +287,18 @@ def _ListAgentEngineMemoryRequestParameters_to_vertex(
     return to_object
 
 
+def _RetrieveAgentEngineMemoriesConfig_to_vertex(
+    from_object: Union[dict[str, Any], object],
+    parent_object: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    to_object: dict[str, Any] = {}
+
+    if getv(from_object, ["filter"]) is not None:
+        setv(parent_object, ["filter"], getv(from_object, ["filter"]))
+
+    return to_object
+
+
 def _RetrieveAgentEngineMemoriesRequestParameters_to_vertex(
     from_object: Union[dict[str, Any], object],
     parent_object: Optional[dict[str, Any]] = None,
@@ -308,7 +325,13 @@ def _RetrieveAgentEngineMemoriesRequestParameters_to_vertex(
         )
 
     if getv(from_object, ["config"]) is not None:
-        setv(to_object, ["config"], getv(from_object, ["config"]))
+        setv(
+            to_object,
+            ["config"],
+            _RetrieveAgentEngineMemoriesConfig_to_vertex(
+                getv(from_object, ["config"]), to_object
+            ),
+        )
 
     return to_object
 
@@ -363,6 +386,11 @@ def _UpdateAgentEngineMemoryConfig_to_vertex(
             parent_object,
             ["disableMemoryRevisions"],
             getv(from_object, ["disable_memory_revisions"]),
+        )
+
+    if getv(from_object, ["topics"]) is not None:
+        setv(
+            parent_object, ["topics"], [item for item in getv(from_object, ["topics"])]
         )
 
     if getv(from_object, ["update_mask"]) is not None:

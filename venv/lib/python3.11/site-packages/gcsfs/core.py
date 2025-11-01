@@ -796,7 +796,7 @@ class GCSFileSystem(asyn.AsyncFileSystem):
         items.extend(page.get("items", []))
         next_page_token = page.get("nextPageToken", None)
 
-        while len(items) < max_results and next_page_token is not None:
+        while len(items) + len(prefixes) < max_results and next_page_token is not None:
             num_items = min(items_per_call, max_results - len(items), 1000)
             page = await self._call(
                 "GET",
@@ -878,7 +878,7 @@ class GCSFileSystem(asyn.AsyncFileSystem):
         acl="projectPrivate",
         default_acl="bucketOwnerFullControl",
         location=None,
-        create_parents=True,
+        create_parents=False,
         enable_versioning=False,
         enable_object_retention=False,
         iam_configuration=None,
@@ -931,10 +931,11 @@ class GCSFileSystem(asyn.AsyncFileSystem):
         if "/" in path and create_parents and await self._exists(bucket):
             # nothing to do
             return
-        if "/" in path and not create_parents:
+        if "/" in path:
             if await self._exists(bucket):
                 return
-            raise FileNotFoundError(bucket)
+            if not create_parents:
+                raise FileNotFoundError(bucket)
 
         json_data = {"name": bucket}
         location = location or self.default_location
