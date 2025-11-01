@@ -132,7 +132,6 @@ def _create_company_and_user_atomic(**kwargs):
           VALUES (@user_name, GENERATE_UUID(), @email, @tel_number, @company_id);
     """
     print("merge_user_sql", merge_user_sql)
-
     user_name = conf.get("user_name", "ИП Новая Компания")
     email = conf.get("email", "ИП Новая Компания")
     tel_number = conf.get("tel_number", "ИП Новая Компания")
