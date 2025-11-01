@@ -1,7 +1,4 @@
 logs/*
-
-# Byte-compiled / optimized / DLL files
-__pycache__/
 *.py[cod]
 *$py.class
 
@@ -100,4 +97,7 @@ Thumbs.db
 credentials.json
 
 # Logs
+<<<<<<< HEAD
 
+=======
+>>>>>>> 373bac56d (fix note)
