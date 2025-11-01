@@ -31,7 +31,7 @@ def _create_company_and_user_atomic(**kwargs):
         "email",
         "tel_number",
     ]
-    print('conf', conf)
+    print("conf", conf)
 
     if not all(key in conf for key in required_keys):
         raise AirflowException(f"Отсутствуют необходимые ключи в conf: {required_keys}")
@@ -187,4 +187,5 @@ with DAG(
 ) as dag:
     create_company_and_user_task = PythonOperator(
         task_id="create_company_and_user_atomic_task",
-        python_callable=_create_company_and_user_atomi)
+        python_callable=_create_company_and_user_atomic,
+    )
