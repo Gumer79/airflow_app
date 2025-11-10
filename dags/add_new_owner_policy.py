@@ -1,3 +1,33 @@
+#!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
+"""
+DAG для добавления нового владельца (компании и пользователя) с использованием политик IAM.
+
+Использование:
+    1. Откройте Airflow UI
+    2. Найдите DAG 'add_new_owner_policy'
+    3. Нажмите "Trigger DAG w/ config"
+    4. Укажите параметры в JSON:
+       {
+         "company_name": "ООО Название компании",
+         "owner": "Иванов Иван Иванович",
+         "token": "wildberries_api_token_here",
+         "email": "user@example.com",
+         "tel_number": "+79001234567"
+       }
+
+Функционал:
+    - Атомарное создание компании и пользователя в BigQuery
+    - Автоматическое добавление IAM-разрешений (roles/bigquery.user)
+    - Создание записи в таблице users с привязкой к компании
+    - Обработка дубликатов и связей пользователей
+
+Отличие от add_new_owner_separate_tasks:
+    - Все операции выполняются в одной задаче (атомарно)
+    - Использует политики IAM для управления доступом
+    - Более быстрое выполнение
+"""
+
 import os
 import logging
 from datetime import datetime
@@ -9,7 +39,8 @@ from airflow.exceptions import AirflowException
 from utilities.config import BIGQUERY_DATASET, BIGQUERY_PROJECT, GCP_CONN_ID
 
 # Импорты для IAM
-from google.cloud import resourcemanager_v3
+from google.cloud import resourcemanager_v3, bigquery
+
 from google.iam.v1 import policy_pb2
 
 COMPANIES_TABLE = "companies"
@@ -17,7 +48,8 @@ USERS_TABLE = "users"
 
 # Константы для IAM
 IAM_PROJECT_ID = "shirman-group-app"
-IAM_ROLE_TO_ADD = "roles/bigquery.dataViewer"
+# IAM_ROLE_TO_ADD = "roles/bigquery.dataViewer"
+IAM_ROLE_TO_ADD = "roles/bigquery.user"
 
 DAG_ID = os.path.basename(__file__).replace(".pyc", "").replace(".py", "")
 
@@ -35,7 +67,7 @@ def _create_company_and_user_atomic(**kwargs):
         "company_name",
         "owner",
         "token",
-        "user_name",
+        # "user_name",
         "email",
         "tel_number",
     ]
@@ -48,7 +80,7 @@ def _create_company_and_user_atomic(**kwargs):
     company_name = conf["company_name"]
     owner = conf["owner"]
     token = conf["token"]
-    user_name = conf["user_name"]
+    # user_name = conf["user_name"]
     email = conf["email"]
     tel_number = conf["tel_number"]
 
@@ -136,12 +168,6 @@ def _create_company_and_user_atomic(**kwargs):
           INSERT (`user`, user_id, email, tel_number, company_id)
           VALUES (@user_name, GENERATE_UUID(), @email, @tel_number, @company_id);
     """
-    print("merge_user_sql", merge_user_sql)
-
-    # *** ИСПРАВЛЕНИЕ: ***
-    # Переменные user_name, email, tel_number уже определены выше
-    # Переменная company_id также уже определена (получена из BQ)
-    # Удалены ошибочные .get() вызовы, которые перезаписывали 'company_id'
 
     job_configuration = {
         "query": {
@@ -151,7 +177,7 @@ def _create_company_and_user_atomic(**kwargs):
                 {
                     "name": "user_name",
                     "parameterType": {"type": "STRING"},
-                    "parameterValue": {"value": user_name},
+                    "parameterValue": {"value": owner},
                 },
                 {
                     "name": "email",
@@ -238,6 +264,36 @@ def _create_company_and_user_atomic(**kwargs):
         logging.error(f"Не удалось обновить IAM-политику: {e}")
         # Если это критично, можно "пробросить" исключение:
         # raise AirflowException(f"Не удалось обновить IAM-политику: {e}")
+
+    datasets = ["wildberries_raw", "user_data"]
+    for dataset in datasets:
+        try:
+            bq_client = bigquery.Client(
+                project=BIGQUERY_PROJECT, credentials=bq_hook.get_credentials()
+            )
+            dataset_ref = bigquery.DatasetReference(BIGQUERY_PROJECT, dataset)
+            dataset = bq_client.get_dataset(dataset_ref)
+
+            entry = bigquery.AccessEntry(
+                role="READER",
+                entity_type="userByEmail",
+                entity_id=email,
+            )
+
+            current_entries = list(dataset.access_entries)
+            if entry not in current_entries:
+                current_entries.append(entry)
+                dataset.access_entries = current_entries
+                bq_client.update_dataset(dataset, ["access_entries"])
+                logging.info(
+                    f"Пользователь {email} добавлен в dataViewer на {dataset}."
+                )
+            else:
+                logging.info(
+                    f"Пользователь {email} уже имеет доступ dataViewer к {dataset}."
+                )
+        except Exception as e:
+            logging.error(f"Не удалось обновить IAM-политику датасета {dataset}: {e}")
 
 
 with DAG(
